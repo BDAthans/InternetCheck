@@ -1,17 +1,23 @@
 # InternetCheck
-C++ standalone application that runs in the background and logs when the internet goes down and back up to a log file.
+
+InternetCheck is a C++ standalone application designed to monitor internet connectivity by running discreetly in the background. It logs each instance when the internet connection is lost and restored, recording these events to a log file.
 
 ## Description
 
-In order to determine if the internet is down, the application performs DNS lookups and pings to 5 domains: google.com, microsoft.com, yahoo.com, amazon.com and cisco.com.
-The DNS lookups and the ICMP requests rely on the Windows API. This application will run on Windows only.
+InternetCheck uses DNS lookups and ICMP (ping) requests to monitor the status of internet connectivity. It targets five key domains for these checks: google.com, microsoft.com, yahoo.com, amazon.com, and cisco.com. The application utilizes the Windows API for executing DNS and ICMP requests, ensuring compatibility exclusively with Windows operating systems.
 
-There are no dependencies that need to be installed, as they are static linked within the application.
+The application is self-contained with all necessary libraries statically linked, thus requiring no additional installations.
 
 ## Installation & Execution
-Place the Install-Startup-RegKey.bat file into the same directory as the InternetCheck.exe, and then run Install-Startup-RegKey.bat to set the application to start on login/boot.
 
-Manually the InternetCheck.exe can be started by running it.
+To install InternetCheck:
+1. Place the `Install-Startup-RegKey.bat` file in the same directory as `InternetCheck.exe`.
+2. Execute `Install-Startup-RegKey.bat` to configure the application to automatically start upon system login or boot.
+
+To manually start the application, simply run `InternetCheck.exe`.
 
 ## Log Location
-The log file 'InternetCheck-Log.txt' will be generated and appended to when the internet goes up or down. 
+
+The application outputs its logs to `InternetCheck-Log.txt`, located in the same directory as the executable. This log file is appended with timestamps detailing when the internet connection goes down and comes back up.
+
+Key Changes Made:
