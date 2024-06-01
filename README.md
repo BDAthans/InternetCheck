@@ -1,6 +1,6 @@
 # InternetCheck
 
-InternetCheck is a C++ standalone application designed to monitor internet connectivity by running discreetly in the background. It logs each instance when the internet connection is lost and restored, recording these events to a log file.
+InternetCheck is an extremely lightweight standalone application written in C++ designed to monitor internet connectivity by running discreetly in the background. It logs each instance when the internet connection is lost and restored, recording these events to a log file.
 
 ## Description
 
