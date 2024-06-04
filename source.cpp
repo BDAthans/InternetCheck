@@ -15,7 +15,7 @@
 
 using namespace std;
 
-BOOL debugging_enabled = TRUE;
+BOOL debugging_enabled = FALSE;
 
 BOOL dnsCheck();
 BOOL pingCheck();
