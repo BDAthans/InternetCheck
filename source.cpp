@@ -21,35 +21,41 @@ BOOL dnsCheck();
 BOOL pingCheck();
 void logWrite(string);
 string getDateTime();
+string convertPCWSTRToString(PCWSTR);
+string convertWcharBufferToString(wchar_t*);
 
 PCWSTR domains[5] = { L"google.com", L"microsoft.com", L"yahoo.com", L"amazon.com", L"cisco.com" };
 BOOL domainResult[5];
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	string currentStatus = "UP";
-	string previousStatus= "UP";
+	string previousStatus = "UP";
+
+	// DEBUG output
+	if (debugging_enabled == TRUE) { logWrite("DEBUG: WinMain function running"); }
 
 	// Internet status check loop
 	while (true) {
 		if (dnsCheck() == FALSE && pingCheck() == FALSE) {
 			// Internet is down
-			if (debugging_enabled == TRUE) { cout << "Internet currently down. Ping and DNS was unsuccessful." << endl << endl; }
+			if (debugging_enabled == TRUE) { logWrite("DEBUG: Internet currently down. Ping and DNS was unsuccessful."); }
 			currentStatus = "DOWN";
 		}
 		else
 		{
 			// Internet is up
-			if (debugging_enabled == TRUE) { cout << "Internet currently up. Ping and/or DNS was successful." << endl << endl; }
+			if (debugging_enabled == TRUE) { logWrite("DEBUG: Internet currently up. Ping and/or DNS was successful."); }
 			currentStatus = "UP";
 		}
 
 		if (currentStatus != previousStatus) {
 			logWrite("Internet status change: " + currentStatus);
 		}
-		
+
 		previousStatus = currentStatus;
 		Sleep(5000); // Sleep for 5 second before running pingCheck and dnsCheck again.
 	}
+
 	return 0;
 }
 
@@ -57,12 +63,18 @@ BOOL dnsCheck() {
 	PDNS_RECORD pDnsRecord = NULL;  // Pointer to DNS_RECORD structure.
 	DNS_STATUS queryStatus;  // Return value of DnsQuery.
 
+	// DEBUG output
+	if (debugging_enabled == TRUE) { logWrite("DEBUG: dnsCheck function running"); }
+
 	for (int x = 0; x < 5; x++) {
 		// Perform the DNS query for the A (IPv4) record on domains
 		queryStatus = DnsQuery(domains[x], DNS_TYPE_A, DNS_QUERY_STANDARD, NULL, &pDnsRecord, NULL);
 
 		if (queryStatus == 0) {
-			if (debugging_enabled == TRUE) { wcout << L"DNS resolution succeeded for: " << domains[x] << endl; }
+			if (debugging_enabled == TRUE) { 
+				string currentDomain = convertPCWSTRToString(domains[x]);
+				logWrite("DEBUG: DNS resolution succeeded for: " + currentDomain); 
+			}
 
 			// Traverse the linked list of DNS records returned
 			while (pDnsRecord) {
@@ -71,19 +83,20 @@ BOOL dnsCheck() {
 					IP4_ADDRESS ipaddr = pDnsRecord->Data.A.IpAddress;
 					if (debugging_enabled == TRUE) {
 						InetNtop(AF_INET, &ipaddr, ipStr, INET_ADDRSTRLEN);
-						wcout << L"IP Address: " << ipStr << endl;
+
+						string currentIP = convertWcharBufferToString(ipStr);
+						logWrite("DEBUG: IP Address: " + currentIP);
 					}
 				}
 				pDnsRecord = pDnsRecord->pNext;
 			}
-			if (debugging_enabled == TRUE) { wcout << endl; }
-
 			// Free memory allocated for DNS records
 			DnsRecordListFree(pDnsRecord, DnsFreeRecordList);
 			domainResult[x] = TRUE;
 		}
 		else {
-			if (debugging_enabled == TRUE) { wcout << L"DNS resolution failed with status: " << queryStatus << endl; }
+			if (debugging_enabled == TRUE) { 
+				logWrite("DEBUG: DNS resolution failed with status: " + queryStatus); }
 			domainResult[x] = FALSE;
 		}
 	}
@@ -98,17 +111,23 @@ BOOL dnsCheck() {
 }
 
 BOOL pingCheck() {
+	string currentDomain;
+	string currentReplyIP;
+
+	// DEBUG output
+	if (debugging_enabled == TRUE) { logWrite("DEBUG: dnsCheck function running"); }
+
 	// Initialize WinSock
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-		std::wcerr << L"WSAStartup failed." << std::endl;
+		if (debugging_enabled == TRUE) { logWrite("DEBUG: pingCheck: WSAStartup failed."); }
 		return FALSE;
 	}
 
 	// Open the ping handle
 	HANDLE hIcmp = IcmpCreateFile();
 	if (hIcmp == INVALID_HANDLE_VALUE) {
-		std::wcerr << L"Failed to create ICMP handle." << std::endl;
+		if (debugging_enabled == TRUE) { logWrite("DEBUG: pingCheck: Failed to create ICMP handle."); }
 		WSACleanup();
 		return FALSE;
 	}
@@ -128,7 +147,10 @@ BOOL pingCheck() {
 
 		// Domains IP resolution
 		if (GetAddrInfoW(domains[x], NULL, &hints, &result) != 0) {
-			std::wcerr << L"DNS resolution failed for: " << domains[x] << std::endl;
+			if (debugging_enabled == TRUE) {
+				currentDomain = convertPCWSTRToString(domains[x]);
+				logWrite("DEBUG: DNS resolution failed for: " + currentDomain);
+			}
 			IcmpCloseHandle(hIcmp);
 			WSACleanup();
 			return FALSE;
@@ -152,19 +174,27 @@ BOOL pingCheck() {
 			if (echoReply->Status == IP_SUCCESS) {
 				wchar_t replyIp[INET_ADDRSTRLEN];
 				InetNtop(AF_INET, &echoReply->Address, replyIp, INET_ADDRSTRLEN);
-				wcout << L"ICMP Echo Sent to: " << domains[x] << endl;
-				wcout << L"Reply from: " << replyIp << L" - RTT: " << echoReply->RoundTripTime << L"ms" << endl << endl;
+
+				if (debugging_enabled == TRUE) {
+					logWrite("DEBUG: ICMP Echo Sent to: " + currentDomain);
+					currentReplyIP = convertWcharBufferToString(replyIp);
+					logWrite("DEBUG: Reply from: " + currentReplyIP + " - RTT: " + to_string(echoReply->RoundTripTime) + "ms");
+				}
 				domainResult[x] = TRUE;
 			}
 			else
-			{
-				wcout << L"Ping to: " << domains[x] << " failed with status : " << echoReply->Status << endl << endl;
+			{	
+				if (debugging_enabled == TRUE) {
+					logWrite("DEBUG: Ping to: " + currentDomain + " failed with status : " + to_string(echoReply->Status));
+				}
 				domainResult[x] = FALSE;
 			}
 		}
 		else
-		{
-			wcerr << L"Call to IcmpSendEcho failed. Error: " << GetLastError() << endl << endl;
+		{	
+			if (debugging_enabled == TRUE) {
+				logWrite("DEBUG: Call to IcmpSendEcho failed. Error: " + GetLastError());
+			}
 			domainResult[x] = FALSE;
 		}
 	}
@@ -190,7 +220,7 @@ void logWrite(string message) {
 	string dateTime = getDateTime();
 
 	if (!logFile.is_open()) {
-		cerr << "Failed to open 'InternetCheck-Log.txt'." << endl;
+		// Error handling for not being able to create log file
 	}
 
 	logFile << dateTime << " - " << message << endl;
@@ -205,4 +235,29 @@ string getDateTime() {
 
 	strftime(dateTime, sizeof(dateTime), "%m-%d-%Y %H:%M:%S", &localTime);
 	return string(dateTime);
+}
+
+string convertPCWSTRToString(PCWSTR pcwstr) {
+	if (pcwstr == nullptr) return string();
+
+	// Get the length of the required buffer
+	int len = WideCharToMultiByte(CP_UTF8, 0, pcwstr, -1, nullptr, 0, nullptr, nullptr);
+	if (len <= 0) return string();
+
+	// Allocate buffer and convert
+	string result(len - 1, '\0'); // Length includes the null terminator
+	WideCharToMultiByte(CP_UTF8, 0, pcwstr, -1, &result[0], len, nullptr, nullptr);
+	return result;
+}
+
+string convertWcharBufferToString(wchar_t* wcharBuffer) {
+	if(wcharBuffer == nullptr) return std::string();  // Handle null pointer
+
+	// Determine the length of the buffer we need
+	int len = WideCharToMultiByte(CP_UTF8, 0, wcharBuffer, -1, nullptr, 0, nullptr, nullptr);
+	if (len <= 0) return std::string();  // Handle error
+
+	std::string str(len - 1, '\0');  // Allocate string of sufficient length
+	WideCharToMultiByte(CP_UTF8, 0, wcharBuffer, -1, &str[0], len, nullptr, nullptr);
+	return str;
 }
