@@ -6,7 +6,7 @@ InternetCheck is an extremely lightweight standalone application written in C++ 
 
 InternetCheck uses DNS lookups and ICMP (ping) requests to monitor the status of internet connectivity. It targets five key domains for these checks: google.com, microsoft.com, yahoo.com, amazon.com, and cisco.com. The application utilizes the Windows API for executing DNS and ICMP requests, ensuring compatibility exclusively with Windows operating systems.
 
-The application is self-contained with all necessary libraries statically linked, thus requiring no additional installations.
+The application is self-contained with all necessary libraries statically linked, requiring no additional installations.
 
 ## Installation & Execution
 
