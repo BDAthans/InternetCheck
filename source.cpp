@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <ShlObj.h>
 
 #pragma comment(lib, "Dnsapi.lib")
 #pragma comment(lib, "Ws2_32.lib")
@@ -20,7 +21,11 @@ BOOL debugging_enabled = FALSE;
 BOOL dnsCheck();
 BOOL pingCheck();
 void logWrite(string);
+string getDocumentsFolder();
+void createLogDirectory(LPCWSTR);
 string getDateTime();
+string getDate();
+wstring convertStringToWString(string);
 string convertPCWSTRToString(PCWSTR);
 string convertWcharBufferToString(wchar_t*);
 
@@ -215,16 +220,61 @@ BOOL pingCheck() {
 }
 
 void logWrite(string message) {
-	// Create log file and output dateTime and message to the log file
-	ofstream logFile("InternetCheck-Log.txt", ios::app);
+	string logFileName;
+	string currentDate = getDate();
 	string dateTime = getDateTime();
+
+	if (debugging_enabled == TRUE) {
+		logFileName = "InternetCheck-Report-" + currentDate + "-DEBUG.log";
+	}
+	else
+	{
+		logFileName = "InternetCheck-Report-" + currentDate + ".log";
+	}	
+
+	string logDirPath = getDocumentsFolder() + "\\InternetCheck";
+	LPCWSTR logDirPathW = convertStringToWString(logDirPath).c_str();
+	createLogDirectory(logDirPathW);
+
+	string logFullPath = logDirPath + "\\" + logFileName;
+	ofstream logFile(logFullPath, ios::app); // Create log file and output dateTime and message to the log file
 
 	if (!logFile.is_open()) {
 		// Error handling for not being able to create log file
 	}
+	else
+	{
+		logFile << dateTime << " - " << message << endl;
+		logFile.close();
+	}
+}
 
-	logFile << dateTime << " - " << message << endl;
-	logFile.close();
+string getDocumentsFolder() {
+	PWSTR path = nullptr;
+	HRESULT result = SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path);
+
+	if (SUCCEEDED(result) && path != nullptr) {
+		std::wstring ws(path);
+		CoTaskMemFree(static_cast<LPVOID>(path)); // Free the allocated path
+
+		std::string documentsPath(ws.begin(), ws.end());
+		return documentsPath;
+	}
+	else {
+		// Handle error
+		std::cerr << "Failed to get Documents folder path." << std::endl;
+		return "";
+	}
+}
+
+void createLogDirectory(LPCWSTR directoryPath) {
+	if (CreateDirectory(directoryPath, NULL) || GetLastError() == ERROR_ALREADY_EXISTS) {
+		// Directory created successfully or already exists
+	}
+	else
+	{
+		cerr << "Failed to create directory at " << directoryPath << endl;
+	}
 }
 
 string getDateTime() {
@@ -235,6 +285,20 @@ string getDateTime() {
 
 	strftime(dateTime, sizeof(dateTime), "%m-%d-%Y %H:%M:%S", &localTime);
 	return string(dateTime);
+}
+
+string getDate() {
+	time_t currentTime = time(nullptr);
+	tm localTime;
+	localtime_s(&localTime, &currentTime);
+	char date[100];
+
+	strftime(date, sizeof(date), "%m-%d-%Y", &localTime);
+	return string(date);
+}
+
+wstring convertStringToWString (string string) {
+	return wstring(string.begin(), string.end());
 }
 
 string convertPCWSTRToString(PCWSTR pcwstr) {
