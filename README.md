@@ -18,4 +18,4 @@ To manually start the application, simply run `InternetCheck.exe`.
 
 ## Log Location
 
-The application outputs its logs to `InternetCheck-Log.txt`, located in the same directory as the executable. This log file is appended with timestamps detailing when the internet connection goes down and comes back up.
+The application writes its logs to `InternetCheck-Report-DATE.log`, located in the `Documents\InternetCheck` directory. This log file is appended with timestamps detailing when the internet connection goes down and comes back up.
